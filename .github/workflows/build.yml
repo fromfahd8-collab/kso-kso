@@ -32,9 +32,7 @@ jobs:
     - name: Convert PNG to ICO
       shell: powershell
       run: |
-        # بنحول icon.png ل icon.ico عشان PyInstaller
         python -c "from PIL import Image; img = Image.open('icon.png'); img.save('icon.ico', format='ICO', sizes=[(256,256),(128,128),(64,64),(32,32),(16,16)])"
-        dir icon.ico
 
     - name: Create required files
       shell: powershell
@@ -66,28 +64,68 @@ jobs:
 
     - name: Build EXE with PyInstaller
       run: |
-        pyinstaller --noconfirm --onefile --windowed --icon=icon.ico --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." --hidden-import="yt_dlp" --hidden-import="PyQt6" main.py
+        pyinstaller --noconfirm --onefile --windowed --icon=icon.ico --add-data "lang.json;." --add-data "config.json;." --hidden-import="yt_dlp" --hidden-import="PyQt6" main.py
         Move-Item dist/main.exe dist/KSO_Download_Turbo_Ultra.exe
 
-    - name: Test 1 - Launch
+    - name: Install Inno Setup
       run: |
-        Start-Process -FilePath "dist/KSO_Download_Turbo_Ultra.exe" -PassThru
-        Start-Sleep -Seconds 5
-        taskkill /f /im KSO_Download_Turbo_Ultra.exe
+        choco install innosetup -y
 
-    - name: Test 2 - File Size
+    - name: Create Installer with Inno Setup Inline
+      shell: powershell
       run: |
-        $size = (Get-Item dist/KSO_Download_Turbo_Ultra.exe).Length / 1MB
-        Write-Host "EXE Size: $size MB"
+        $iss = @"
+        #define MyAppName "KSO Download Turbo Ultra"
+        #define MyAppVersion "1.0.0"
+        #define MyAppPublisher "KSO Team"
+        #define MyAppExeName "KSO_Download_Turbo_Ultra.exe"
 
-    - name: Create Portable ZIP with FFmpeg
-      run: |
-        Compress-Archive -Path dist/KSO_Download_Turbo_Ultra.exe, ffmpeg.exe, lang.json, config.json -DestinationPath KSO_Portable.zip
+        [Setup]
+        AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
+        AppName={#MyAppName}
+        AppVersion={#MyAppVersion}
+        AppPublisher={#MyAppPublisher}
+        DefaultDirName={autopf}\{#MyAppName}
+        DefaultGroupName={#MyAppName}
+        OutputDir=dist
+        OutputBaseFilename=KSO_Download_Turbo_Ultra_Setup
+        Compression=lzma2
+        SolidCompression=yes
+        WizardStyle=modern
+        ArchitecturesInstallIn64BitMode=x64
+        SetupIconFile=icon.ico
+        UninstallDisplayIcon={app}\{#MyAppExeName}
+
+        [Languages]
+        Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
+
+        [Tasks]
+        Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+        Name: "modifypath"; Description: "Add FFmpeg to system PATH"; GroupDescription: "Additional settings:"
+
+        [Files]
+        Source: "dist\KSO_Download_Turbo_Ultra.exe"; DestDir: "{app}"; Flags: ignoreversion
+        Source: "ffmpeg.exe"; DestDir: "{app}"; Flags: ignoreversion
+        Source: "lang.json"; DestDir: "{app}"; Flags: ignoreversion
+        Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
+
+        [Icons]
+        Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+        Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
+        Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+        [Run]
+        Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+        [Registry]
+        Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: modifypath; Check: NeedsAddPath('{app}')
+        "@
+        $iss | Set-Content -Path installer.iss -Encoding UTF8
+        "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: KSO-Download-Turbo-Ultra-Windows
         path: |
-          dist/KSO_Download_Turbo_Ultra.exe
-          KSO_Portable.zip
+          dist/KSO_Download_Turbo_Ultra_Setup.exe
