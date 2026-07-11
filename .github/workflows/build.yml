@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install PyQt6 yt-dlp psutil plyer pyinstaller
+        pip install PyQt6 yt-dlp psutil plyer pyinstaller pillow
 
     - name: Download FFmpeg
       run: |
@@ -29,10 +29,16 @@ jobs:
         Expand-Archive ffmpeg.zip -DestinationPath ffmpeg
         Move-Item ffmpeg/ffmpeg-*-essentials_build/bin/ffmpeg.exe .
 
+    - name: Convert PNG to ICO
+      shell: powershell
+      run: |
+        # بنحول icon.png ل icon.ico عشان PyInstaller
+        python -c "from PIL import Image; img = Image.open('icon.png'); img.save('icon.ico', format='ICO', sizes=[(256,256),(128,128),(64,64),(32,32),(16,16)])"
+        dir icon.ico
+
     - name: Create required files
       shell: powershell
       run: |
-        # lang.json - عشان العربي ميبوظش
         @'
         {
           "ar": {
@@ -49,7 +55,6 @@ jobs:
         }
         '@ | Set-Content -Path lang.json -Encoding UTF8
 
-        # config.json
         @'
         {
           "download_path": "Downloads",
@@ -61,7 +66,7 @@ jobs:
 
     - name: Build EXE with PyInstaller
       run: |
-        pyinstaller --noconfirm --onefile --windowed --icon=icon.ico --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." main.py
+        pyinstaller --noconfirm --onefile --windowed --icon=icon.ico --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." --hidden-import="yt_dlp" --hidden-import="PyQt6" main.py
         Move-Item dist/main.exe dist/KSO_Download_Turbo_Ultra.exe
 
     - name: Test 1 - Launch
@@ -78,11 +83,6 @@ jobs:
     - name: Create Portable ZIP with FFmpeg
       run: |
         Compress-Archive -Path dist/KSO_Download_Turbo_Ultra.exe, ffmpeg.exe, lang.json, config.json -DestinationPath KSO_Portable.zip
-
-    - name: Create Installer with Inno Setup + FFmpeg
-      run: |
-        # هنا هتحط سكريبت Inno Setup بتاعك
-        echo "Installer step skipped for now"
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
