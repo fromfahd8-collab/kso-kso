@@ -74,7 +74,7 @@ jobs:
     - name: Create Installer with Inno Setup Inline
       shell: powershell
       run: |
-        $iss = @"
+        $issContent = @'
         #define MyAppName "KSO Download Turbo Ultra"
         #define MyAppVersion "1.0.0"
         #define MyAppPublisher "KSO Team"
@@ -118,10 +118,10 @@ jobs:
         Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
         [Registry]
-        Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: modifypath; Check: NeedsAddPath('{app}')
-        "@
-        $iss | Set-Content -Path installer.iss -Encoding UTF8
-        "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: modifypath
+        '@
+        $issContent | Out-File -FilePath installer.iss -Encoding UTF8
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
