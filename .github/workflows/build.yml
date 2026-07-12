@@ -48,7 +48,9 @@ jobs:
       run: |
         Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile "ffmpeg.zip"
         Expand-Archive ffmpeg.zip -DestinationPath ffmpeg
-        Copy-Item ffmpeg/ffmpeg-*/bin/ffmpeg.exe.
+        $ffmpegPath = Get-ChildItem -Path ffmpeg -Recurse -Filter ffmpeg.exe | Select-Object -First 1
+        Copy-Item $ffmpegPath.FullName -Destination ffmpeg.exe
+        dir ffmpeg.exe
     
     - name: Install Inno Setup
       run: choco install innosetup -y
