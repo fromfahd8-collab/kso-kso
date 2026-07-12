@@ -1,6 +1,5 @@
 name: Build KSO Download Turbo Ultra V1.0 PRO
-on:
-  workflow_dispatch:
+on: workflow_dispatch
 jobs:
   build:
     runs-on: windows-latest
@@ -35,7 +34,7 @@ jobs:
         echo Source: "config.json"; DestDir: "{app}" >> installer.iss
         echo Source: "modules\*"; DestDir: "{app}\modules"; Flags: recursesubdirs >> installer.iss
         echo [Icons] >> installer.iss
-        echo "Name: \"{commondesktop}\KSO Download Turbo Ultra V1.0 PRO\"; Filename: \"{app}\KSO Download Turbo Ultra V1.0 PRO.exe\"" >> installer.iss
+        echo Name: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe" >> installer.iss
     - name: Build Setup
       run: "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" installer.iss
     - uses: actions/upload-artifact@v4
