@@ -1,4 +1,4 @@
-name: Build KSO Turbo
+name: Build KSO Download Turbo Ultra V1.0 PRO
 on: workflow_dispatch
 jobs:
   build:
@@ -9,34 +9,33 @@ jobs:
       with:
         python-version: '3.10'
     - run: pip install -r requirements.txt pillow
-    - name: FFmpeg
+    - name: Download FFmpeg
       run: curl -L https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -o f.zip && 7z x f.zip && move ffmpeg-*\bin\ffmpeg.exe.
-    - name: Build
-      run: pyinstaller --noconfirm --onefile --windowed --icon=app_icon.png --name "KSO Turbo" --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." --add-data "modules;modules" --hidden-import=keyboard --hidden-import=cryptography --hidden-import=psutil --hidden-import=plyer --collect-all yt_dlp --collect-all PyQt6 main.py
-    - name: Portable
-      run: powershell Compress-Archive "dist\KSO Turbo.exe",ffmpeg.exe,lang.json,config.json,modules "KSO-Portable.zip"
-    - name: Installer
+    - name: Build EXE
+      run: pyinstaller --noconfirm --onefile --windowed --icon=app_icon.png --name "KSO Download Turbo Ultra V1.0 PRO" --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." --add-data "modules;modules" --hidden-import=keyboard --hidden-import=cryptography --hidden-import=psutil --hidden-import=plyer --collect-all yt_dlp --collect-all PyQt6 main.py
+    - name: Create Portable
+      run: powershell Compress-Archive "dist\KSO Download Turbo Ultra V1.0 PRO.exe",ffmpeg.exe,lang.json,config.json,modules "KSO-Download-Turbo-Ultra-V1.0-PRO-Portable.zip"
+    - name: Create Installer
       shell: cmd
       run: |
-        echo [Setup] > s.iss
-        echo AppName=KSO Turbo >> s.iss
-        echo AppVersion=1.0 >> s.iss
-        echo DefaultDirName={pf}\KSO Turbo >> s.iss
-        echo OutputBaseFilename=KSO-Setup >> s.iss
-        echo SetupIconFile=app_icon.png >> s.iss
-        echo [Files] >> s.iss
-        echo Source: "dist\KSO Turbo.exe"; DestDir: "{app}" >> s.iss
-        echo Source: "ffmpeg.exe"; DestDir: "{app}" >> s.iss
-        echo Source: "lang.json"; DestDir: "{app}" >> s.iss
-        echo Source: "config.json"; DestDir: "{app}" >> s.iss
-        echo Source: "modules\*"; DestDir: "{app}\modules"; Flags: recursesubdirs >> s.iss
-        echo [Icons] >> s.iss
-        echo Name: "{autodesktop}\KSO Turbo"; Filename: "{app}\KSO Turbo.exe" >> s.iss
-    - name: Compile
-      run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" s.iss'
+        echo [Setup] > installer.iss
+        echo AppName=KSO Download Turbo Ultra V1.0 PRO >> installer.iss
+        echo AppVersion=1.0.0 >> installer.iss
+        echo DefaultDirName={pf}\KSO Download Turbo Ultra V1.0 PRO >> installer.iss
+        echo OutputBaseFilename=KSO-Download-Turbo-Ultra-V1.0-PRO-Setup >> installer.iss
+        echo SetupIconFile=app_icon.png >> installer.iss
+        echo [Files] >> installer.iss
+        echo Source: "dist\KSO Download Turbo Ultra V1.0 PRO.exe"; DestDir: "{app}" >> installer.iss
+        echo Source: "ffmpeg.exe"; DestDir: "{app}" >> installer.iss
+        echo Source: "lang.json"; DestDir: "{app}" >> installer.iss
+        echo Source: "config.json"; DestDir: "{app}" >> installer.iss
+        echo Source: "modules\*"; DestDir: "{app}\modules"; Flags: recursesubdirs >> installer.iss
+        echo [Icons] >> installer.iss
+        echo Name: "{autodesktop}\KSO Download Turbo Ultra V1.0 PRO"; Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe" >> installer.iss
+    - name: Build Setup
+      run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
     - uses: actions/upload-artifact@v4
       with:
-        name: KSO-Turbo
-        path:
-        - KSO-Portable.zip
-        - KSO-Setup.exe
+        name: KSO-Download-Turbo-Ultra-V1.0-PRO
+        path: KSO-Download-Turbo-Ultra-V1.0-PRO-Portable.zip
+        path: KSO-Download-Turbo-Ultra-V1.0-PRO-Setup.exe
