@@ -12,12 +12,14 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Fix modules folder name
+      shell: powershell
       run: |
         if (Test-Path "modules/_init_.py") { Rename-Item "modules/_init_.py" "__init__.py" }
         if (Test-Path "modules/init.py") { Rename-Item "modules/init.py" "__init__.py" }
         if (!(Test-Path "modules/__init__.py")) { New-Item -ItemType File -Path "modules/__init__.py" }
 
     - name: Create setup.iss automatically
+      shell: powershell
       run: |
         @"
         [Setup]
@@ -57,11 +59,12 @@ jobs:
         pip install pyinstaller
 
     - name: Download FFmpeg
+      shell: powershell
       run: |
-        Invoke-WebRequest https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -OutFile ffmpeg.zip
-        Expand-Archive ffmpeg.zip -DestinationPath.
-        Move-Item.\ffmpeg-*-essentials_build\bin\ffmpeg.exe.\ffmpeg.exe
-        Remove-Item ffmpeg.zip
+        Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile "ffmpeg.zip"
+        Expand-Archive "ffmpeg.zip" -DestinationPath "."
+        Move-Item ".\ffmpeg-*-essentials_build\bin\ffmpeg.exe" ".\ffmpeg.exe"
+        Remove-Item "ffmpeg.zip"
 
     - name: Install Inno Setup
       run: choco install innosetup -y
