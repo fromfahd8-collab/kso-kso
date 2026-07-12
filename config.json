@@ -1,0 +1,6 @@
+{
+  "path": "", "quality": "1080p", "parallel": 4, "shutdown": false, "language": "ar",
+  "password": "", "speed_limit": 0, "schedule_time": "", "auto_compress": true,
+  "smart_mode": true, "manual_threads": 32, "proxy": "", "compress_mode": "balanced",
+  "delete_original": false, "no_duplicate": true, "welcome_shown": false
+}
