@@ -29,7 +29,7 @@ from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from plyer import notification
 import yt_dlp
-import speedtest
+import speedtest_cli
 
 # مكتبات إضافية للتشفير والمراقبة
 try:
