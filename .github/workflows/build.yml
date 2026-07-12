@@ -7,8 +7,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      with: {python-version: '3.10'}
     - run: pip install -r requirements.txt pillow
     - name: Download FFmpeg
       run: |
@@ -36,7 +35,7 @@ jobs:
         echo Source: "config.json"; DestDir: "{app}" >> installer.iss
         echo Source: "modules\*"; DestDir: "{app}\modules"; Flags: recursesubdirs >> installer.iss
         echo [Icons] >> installer.iss
-        echo Name: "{commondesktop}\KSO Download Turbo Ultra V1.0 PRO"; Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe" >> installer.iss
+        echo "Name: \"{commondesktop}\KSO Download Turbo Ultra V1.0 PRO\"; Filename: \"{app}\KSO Download Turbo Ultra V1.0 PRO.exe\"" >> installer.iss
     - name: Build Setup
       run: "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" installer.iss
     - uses: actions/upload-artifact@v4
