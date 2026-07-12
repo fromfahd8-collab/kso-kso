@@ -1,131 +1,47 @@
-name: Build KSO Download Turbo Ultra v1 PRO
-
+name: Build KSO Download Turbo Ultra V1.0 PRO
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
-
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install PyQt6 yt-dlp psutil plyer pyinstaller pillow
-
+    - run: pip install -r requirements.txt pillow
     - name: Download FFmpeg
       run: |
-        Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile ffmpeg.zip
-        Expand-Archive ffmpeg.zip -DestinationPath ffmpeg
-        Move-Item ffmpeg/ffmpeg-*-essentials_build/bin/ffmpeg.exe .
-
-    - name: Convert PNG to ICO
-      shell: powershell
+        Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile ffmpeg.zip
+        Expand-Archive ffmpeg.zip -DestinationPath temp
+        Move-Item temp\ffmpeg-*\bin\ffmpeg.exe.
+    - name: Build EXE
+      run: pyinstaller --noconfirm --onefile --windowed --icon=app_icon.png --name "KSO Download Turbo Ultra V1.0 PRO" --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." --add-data "modules;modules" --hidden-import=keyboard --hidden-import=cryptography --hidden-import=psutil --hidden-import=plyer --collect-all yt_dlp --collect-all PyQt6 main.py
+    - name: Create Portable
+      run: powershell Compress-Archive "dist\KSO Download Turbo Ultra V1.0 PRO.exe",ffmpeg.exe,lang.json,config.json,modules "KSO-Download-Turbo-Ultra-V1.0-PRO-Portable.zip"
+    - name: Create ISS File
       run: |
-        python -c "from PIL import Image; img = Image.open('icon.png'); img.save('icon.ico', format='ICO', sizes=[(256,256),(128,128),(64,64),(32,32),(16,16)])"
-
-    - name: Create required files
-      shell: powershell
-      run: |
-        @'
-        {
-          "ar": {
-            "title": "KSO Download Turbo Ultra",
-            "speed": "السرعه",
-            "path": "مسار الحفظ",
-            "quality": "الجوده",
-            "download": "تحميل",
-            "pause": "ايقاف",
-            "compress": "ضغط الفيديو",
-            "connections": "عدد الاتصالات",
-            "beast_mode": "Beast: 1,000,000"
-          }
-        }
-        '@ | Set-Content -Path lang.json -Encoding UTF8
-
-        @'
-        {
-          "download_path": "Downloads",
-          "max_connections": 8,
-          "theme": "dark",
-          "language": "ar"
-        }
-        '@ | Set-Content -Path config.json -Encoding UTF8
-
-    - name: Build EXE with PyInstaller
-      run: |
-        pyinstaller --noconfirm --onefile --windowed --icon=icon.ico --add-data "lang.json;." --add-data "config.json;." --hidden-import="yt_dlp" --hidden-import="PyQt6" main.py
-        Move-Item dist/main.exe dist/KSO_Download_Turbo_Ultra.exe
-
-    - name: Install Inno Setup
-      run: |
-        choco install innosetup -y
-
-    - name: Create Installer with Inno Setup Inline
-      shell: powershell
-      run: |
-        $issContent = @'
-        #define MyAppName "KSO Download Turbo Ultra"
-        #define MyAppVersion "1.0.0"
-        #define MyAppPublisher "KSO Team"
-        #define MyAppExeName "KSO_Download_Turbo_Ultra.exe"
-
-        [Setup]
-        AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
-        AppName={#MyAppName}
-        AppVersion={#MyAppVersion}
-        AppPublisher={#MyAppPublisher}
-        DefaultDirName={autopf}\{#MyAppName}
-        DefaultGroupName={#MyAppName}
-        OutputDir=dist
-        OutputBaseFilename=KSO_Download_Turbo_Ultra_Setup
-        Compression=lzma2
-        SolidCompression=yes
-        WizardStyle=modern
-        ArchitecturesInstallIn64BitMode=x64
-        SetupIconFile=icon.ico
-        UninstallDisplayIcon={app}\{#MyAppExeName}
-
-        [Languages]
-        Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
-
-        [Tasks]
-        Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-        Name: "modifypath"; Description: "Add FFmpeg to system PATH"; GroupDescription: "Additional settings:"
-
-        [Files]
-        Source: "dist\KSO_Download_Turbo_Ultra.exe"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "ffmpeg.exe"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "lang.json"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
-
-        [Icons]
-        Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-        Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-        Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-
-        [Run]
-        Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-
-        [Registry]
-        Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: modifypath
-        '@
-        $issContent | Out-File -FilePath installer.iss -Encoding UTF8
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
+        echo [Setup] > installer.iss
+        echo AppName=KSO Download Turbo Ultra V1.0 PRO >> installer.iss
+        echo AppVersion=1.0.0 >> installer.iss
+        echo DefaultDirName={pf}\KSO Download Turbo Ultra V1.0 PRO >> installer.iss
+        echo OutputBaseFilename=KSO-Download-Turbo-Ultra-V1.0-PRO-Setup >> installer.iss
+        echo SetupIconFile=app_icon.png >> installer.iss
+        echo Compression=lzma >> installer.iss
+        echo SolidCompression=yes >> installer.iss
+        echo [Files] >> installer.iss
+        echo Source: "dist\KSO Download Turbo Ultra V1.0 PRO.exe"; DestDir: "{app}" >> installer.iss
+        echo Source: "ffmpeg.exe"; DestDir: "{app}" >> installer.iss
+        echo Source: "lang.json"; DestDir: "{app}" >> installer.iss
+        echo Source: "config.json"; DestDir: "{app}" >> installer.iss
+        echo Source: "modules\*"; DestDir: "{app}\modules"; Flags: recursesubdirs >> installer.iss
+        echo [Icons] >> installer.iss
+        echo Name: "{commondesktop}\KSO Download Turbo Ultra V1.0 PRO"; Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe" >> installer.iss
+    - name: Build Setup
+      run: "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" installer.iss
+    - uses: actions/upload-artifact@v4
       with:
-        name: KSO-Download-Turbo-Ultra-Windows
-        path: |
-          dist/KSO_Download_Turbo_Ultra_Setup.exe
+        name: KSO-Download-Turbo-Ultra-V1.0-PRO
+        path:
+          - KSO-Download-Turbo-Ultra-V1.0-PRO-Portable.zip
+          - KSO-Download-Turbo-Ultra-V1.0-PRO-Setup.exe
