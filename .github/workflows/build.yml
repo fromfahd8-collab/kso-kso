@@ -68,7 +68,7 @@ jobs:
 
     - name: Build Portable EXE
       run: |
-        pyinstaller --noconfirm --onefile --windowed --icon=app_icon.png --name "KSO Download Turbo Ultra V1.0 PRO" --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." --add-data "modules;modules" --hidden-import=keyboard --hidden-import=cryptography --hidden-import=psutil --hidden-import=plyer --collect-all yt_dlp --collect-all PyQt6 main.py
+        pyinstaller --noconfirm --onefile --windowed --icon=app_icon.ico --name "KSO Download Turbo Ultra V1.0 PRO" --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." --add-data "modules;modules" --hidden-import=keyboard --hidden-import=cryptography --hidden-import=psutil --hidden-import=plyer --collect-all yt_dlp --collect-all PyQt6 main.py
 
     - name: Build Installer
       run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss'
