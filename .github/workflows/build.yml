@@ -1,80 +1,74 @@
-name: Build KSO with Nuitka
+name: Build KSO Download Turbo Ultra
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
 
 jobs:
   build-windows:
     runs-on: windows-latest
+    
     steps:
-    - uses: actions/checkout@v4
-
-    - uses: actions/setup-python@v5
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-
+        architecture: 'x64'
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install nuitka ordered-set zstandard
-
-    - name: Install Inno Setup
-      run: choco install innosetup -y
-
-    - name: Download FFmpeg
+        pip install nuitka
+    
+    - name: Install Dependency Walker for Nuitka
       run: |
-        Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile "ffmpeg.zip"
-        Expand-Archive ffmpeg.zip -DestinationPath ffmpeg
-        Copy-Item (Get-ChildItem -Path ffmpeg -Recurse -Filter ffmpeg.exe | Select-Object -First 1).FullName -Destination ffmpeg.exe
-
-    - name: Create setup.iss file
-      run: |
-        @'
-        [Setup]
-        AppName=KSO Download Turbo Ultra
-        AppVersion=1.0
-        DefaultDirName={pf}\KSO Download Turbo Ultra
-        OutputDir=Output
-        OutputBaseFilename=KSO-Download-Turbo-Ultra-V1.0-PRO-Setup
-        Compression=lzma2
-        SolidCompression=yes
-        WizardStyle=modern
-
-        [Files]
-        Source: "KSO Download Turbo Ultra V1.0 PRO.exe"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "lang.json"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "ffmpeg.exe"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "main.py"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "compressor.py"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "downloader.py"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "modules\*"; DestDir: "{app}\modules"; Flags: ignoreversion recursesubdirs
-
-        [Icons]
-        Name: "{group}\KSO Download Turbo Ultra"; Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe"
-        Name: "{commondesktop}\KSO Download Turbo Ultra"; Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe"
-
-        [Run]
-        Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe"; Description: "Launch Application"; Flags: nowait postinstall skipifsilent
-        '@ | Out-File -FilePath setup.iss -Encoding UTF8
-
+        choco install dependencywalker -y
+    
     - name: Build with Nuitka
       run: |
-        python -m nuitka --onefile --windows-disable-console --windows-icon-from-ico=app_icon.ico --enable-plugin=pyqt6 --include-data-files=lang.json=lang.json --include-data-files=config.json=config.json --include-data-files=ffmpeg.exe=ffmpeg.exe --include-package=modules --include-package=speedtest_cli --output-filename="KSO Download Turbo Ultra V1.0 PRO.exe" main.py
-
-    - name: Build Installer
+        python -m nuitka `
+        --mode=standalone `
+        --enable-plugin=pyqt6 `
+        --include-data-files=lang.json=lang.json `
+        --include-data-files=config.json=config.json `
+        --include-data-files=ffmpeg.exe=ffmpeg.exe `
+        --include-package=modules `
+        --include-package=speedtest_cli `
+        --windows-icon-from-ico=app_icon.ico `
+        --windows-console-mode=disable `
+        --output-filename="KSO Download Turbo Ultra V1.0 PRO.exe" `
+        main.py
+      shell: powershell
+    
+    - name: Build Installer with NSIS
       run: |
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
-
+        choco install nsis -y
+        echo '!include "MUI2.nsh"' > installer.nsi
+        echo 'Name "KSO Download Turbo Ultra V1.0 PRO"' >> installer.nsi
+        echo 'OutFile "KSO-Setup.exe"' >> installer.nsi
+        echo 'InstallDir "$PROGRAMFILES\KSO Download Turbo"' >> installer.nsi
+        echo 'Page directory' >> installer.nsi
+        echo 'Page instfiles' >> installer.nsi
+        echo 'Section' >> installer.nsi
+        echo '  SetOutPath $INSTDIR' >> installer.nsi
+        echo '  File "KSO Download Turbo Ultra V1.0 PRO.exe"' >> installer.nsi
+        echo '  CreateShortcut "$DESKTOP\KSO Download Turbo.lnk" "$INSTDIR\KSO Download Turbo Ultra V1.0 PRO.exe"' >> installer.nsi
+        echo 'SectionEnd' >> installer.nsi
+        & "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+    
     - name: Upload Portable Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-Download-Turbo-Ultra-V1.0-PRO-Portable
+        name: KSO-Portable
         path: KSO Download Turbo Ultra V1.0 PRO.exe
-
+    
     - name: Upload Installer Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-Download-Turbo-Ultra-V1.0-PRO-Setup
-        path: Output/*.exe
+        name: KSO-Installer
+        path: KSO-Setup.exe
