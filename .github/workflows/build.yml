@@ -22,9 +22,15 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
 
-    - name: Install Inno Setup
+    - name: Download FFmpeg
       run: |
-        choco install innosetup -y
+        Invoke-WebRequest -Uri https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -OutFile ffmpeg.zip
+        Expand-Archive ffmpeg.zip -DestinationPath .
+        Move-Item .\ffmpeg-*-essentials_build\bin\ffmpeg.exe .\ffmpeg.exe
+        Remove-Item ffmpeg.zip -Recurse
+
+    - name: Install Inno Setup
+      run: choco install innosetup -y
 
     - name: Build Portable EXE
       run: |
