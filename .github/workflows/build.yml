@@ -13,17 +13,37 @@ jobs:
 
     - name: Fix modules folder name
       run: |
-        # ده هيصلح اسم الملف لو غلط
-        if (Test-Path "modules/_init_.py") {
-          Rename-Item "modules/_init_.py" "__init__.py"
-        }
-        if (Test-Path "modules/init.py") {
-          Rename-Item "modules/init.py" "__init__.py"
-        }
-        # لو مش موجود خالص نعمله
-        if (!(Test-Path "modules/__init__.py")) {
-          New-Item -ItemType File -Path "modules/__init__.py"
-        }
+        if (Test-Path "modules/_init_.py") { Rename-Item "modules/_init_.py" "__init__.py" }
+        if (Test-Path "modules/init.py") { Rename-Item "modules/init.py" "__init__.py" }
+        if (!(Test-Path "modules/__init__.py")) { New-Item -ItemType File -Path "modules/__init__.py" }
+
+    - name: Create setup.iss automatically
+      run: |
+        @"
+        [Setup]
+        AppName=KSO Download Turbo Ultra V1.0 PRO
+        AppVersion=1.0
+        DefaultDirName={autopf}\KSO Download Turbo Ultra
+        DefaultGroupName=KSO Download Turbo Ultra
+        OutputDir=Output
+        OutputBaseFilename=KSO-Download-Turbo-Ultra-V1.0-PRO-Setup
+        Compression=lzma2
+        SolidCompression=yes
+        WizardStyle=modern
+
+        [Files]
+        Source: "dist\KSO Download Turbo Ultra V1.0 PRO.exe"; DestDir: "{app}"; Flags: ignoreversion
+        Source: "ffmpeg.exe"; DestDir: "{app}"; Flags: ignoreversion
+        Source: "lang.json"; DestDir: "{app}"; Flags: ignoreversion
+        Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
+
+        [Icons]
+        Name: "{group}\KSO Download Turbo Ultra"; Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe"
+        Name: "{commondesktop}\KSO Download Turbo Ultra"; Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe"
+
+        [Run]
+        Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe"; Description: "Launch KSO Download Turbo Ultra"; Flags: nowait postinstall skipifsilent
+        "@ | Out-File -FilePath setup.iss -Encoding UTF8
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -39,8 +59,8 @@ jobs:
     - name: Download FFmpeg
       run: |
         Invoke-WebRequest https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -OutFile ffmpeg.zip
-        Expand-Archive ffmpeg.zip .
-        Move-Item .\ffmpeg-*-essentials_build\bin\ffmpeg.exe .\ffmpeg.exe
+        Expand-Archive ffmpeg.zip.
+        Move-Item.\ffmpeg-*-essentials_build\bin\ffmpeg.exe.\ffmpeg.exe
 
     - name: Install Inno Setup
       run: choco install innosetup -y
@@ -59,7 +79,7 @@ jobs:
         path: dist/*.exe
 
     - name: Upload Installer
-      uses: actions/upload-artifact@v4
+      uses: actions/setup-python@v5
       with:
         name: KSO-Download-Turbo-Ultra-V1.0-PRO-Setup
         path: Output/*.exe
