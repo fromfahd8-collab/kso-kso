@@ -16,22 +16,6 @@ jobs:
         if (Test-Path "modules/_init_.py") { Rename-Item "modules/_init_.py" "__init__.py" }
         if (Test-Path "modules/_init_.pyc") { Remove-Item "modules/_init_.pyc" }
 
-    - name: Create main.py with correct imports
-      run: |
-        @'
-        import sys
-        import os
-        from PyQt6.QtWidgets import QApplication
-        from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest
-        from modules.main_app import MainWindow
-
-        if __name__ == "__main__":
-            app = QApplication(sys.argv)
-            window = MainWindow()
-            window.show()
-            sys.exit(app.exec())
-        '@ | Out-File -FilePath main.py -Encoding UTF8
-
     - name: Setup Python 3.11
       uses: actions/setup-python@v5
       with:
@@ -73,6 +57,9 @@ jobs:
         Source: "lang.json"; DestDir: "{app}"; Flags: ignoreversion
         Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
         Source: "ffmpeg.exe"; DestDir: "{app}"; Flags: ignoreversion
+        Source: "main.py"; DestDir: "{app}"; Flags: ignoreversion
+        Source: "compressor.py"; DestDir: "{app}"; Flags: ignoreversion
+        Source: "downloader.py"; DestDir: "{app}"; Flags: ignoreversion
         Source: "modules\*"; DestDir: "{app}\modules"; Flags: ignoreversion recursesubdirs
 
         [Icons]
@@ -85,7 +72,7 @@ jobs:
 
     - name: Build Portable EXE
       run: |
-        pyinstaller --noconfirm --onefile --windowed --icon=app_icon.ico --name "KSO Download Turbo Ultra V1.0 PRO" --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." --add-data "modules;modules" --hidden-import=keyboard --hidden-import=cryptography --hidden-import=psutil --hidden-import=plyer --collect-all yt_dlp --collect-all PyQt6 main.py
+        pyinstaller --noconfirm --onefile --windowed --icon=app_icon.ico --name "KSO Download Turbo Ultra V1.0 PRO" --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." --add-data "main.py;." --add-data "compressor.py;." --add-data "downloader.py;." --add-data "modules;modules" --hidden-import=keyboard --hidden-import=cryptography --hidden-import=psutil --hidden-import=plyer --collect-all yt_dlp --collect-all PyQt6 main.py
 
     - name: Build Installer
       run: |
