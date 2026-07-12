@@ -6,82 +6,63 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
-
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Fix modules folder name
-      shell: powershell
+    - uses: actions/checkout@v4
+    
+    - name: Fix _init_
       run: |
         if (Test-Path "modules/_init_.py") { Rename-Item "modules/_init_.py" "__init__.py" }
-        if (Test-Path "modules/init.py") { Rename-Item "modules/init.py" "__init__.py" }
-        if (!(Test-Path "modules/__init__.py")) { New-Item -ItemType File -Path "modules/__init__.py" }
-
-    - name: Create setup.iss automatically
-      shell: powershell
+    
+    - name: Create fixed main.py
       run: |
-        @"
-        [Setup]
-        AppName=KSO Download Turbo Ultra V1.0 PRO
-        AppVersion=1.0
-        DefaultDirName={autopf}\KSO Download Turbo Ultra
-        DefaultGroupName=KSO Download Turbo Ultra
-        OutputDir=Output
-        OutputBaseFilename=KSO-Download-Turbo-Ultra-V1.0-PRO-Setup
-        Compression=lzma2
-        SolidCompression=yes
-        WizardStyle=modern
+        @'
+        import sys
+        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest  # ده التعديل المهم
+        from main_app import MainWindow  # غيرها باسم الكلاس بتاعك
 
-        [Files]
-        Source: "dist\KSO Download Turbo Ultra V1.0 PRO.exe"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "ffmpeg.exe"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "lang.json"; DestDir: "{app}"; Flags: ignoreversion
-        Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
+        if __name__ == "__main__":
+            app = QApplication(sys.argv)
+            window = MainWindow()
+            window.show()
+            sys.exit(app.exec())
+        '@ | Out-File -FilePath main.py -Encoding UTF8
 
-        [Icons]
-        Name: "{group}\KSO Download Turbo Ultra"; Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe"
-        Name: "{commondesktop}\KSO Download Turbo Ultra"; Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe"
-
-        [Run]
-        Filename: "{app}\KSO Download Turbo Ultra V1.0 PRO.exe"; Description: "Launch KSO Download Turbo Ultra"; Flags: nowait postinstall skipifsilent
-        "@ | Out-File -FilePath setup.iss -Encoding UTF8
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-
-    - name: Install dependencies
+    
+    - name: Install deps with FIXED versions
       run: |
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
+        pip install PyQt6==6.6.1 PyQt6-WebEngine==6.6.1  # ثبتنا الاصدار
         pip install -r requirements.txt
         pip install pyinstaller
-
+    
     - name: Download FFmpeg
-      shell: powershell
       run: |
         Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile "ffmpeg.zip"
-        Expand-Archive "ffmpeg.zip" -DestinationPath "."
-        Move-Item ".\ffmpeg-*-essentials_build\bin\ffmpeg.exe" ".\ffmpeg.exe"
-        Remove-Item "ffmpeg.zip"
-
+        Expand-Archive ffmpeg.zip -DestinationPath ffmpeg
+        Copy-Item ffmpeg/ffmpeg-*/bin/ffmpeg.exe .
+    
     - name: Install Inno Setup
       run: choco install innosetup -y
-
+    
     - name: Build Portable EXE
       run: |
         pyinstaller --noconfirm --onefile --windowed --icon=app_icon.ico --name "KSO Download Turbo Ultra V1.0 PRO" --add-data "lang.json;." --add-data "config.json;." --add-data "ffmpeg.exe;." --add-data "modules;modules" --hidden-import=keyboard --hidden-import=cryptography --hidden-import=psutil --hidden-import=plyer --collect-all yt_dlp --collect-all PyQt6 main.py
-
+    
     - name: Build Installer
-      run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss'
-
+      run: |
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
+    
     - name: Upload Portable
       uses: actions/upload-artifact@v4
       with:
         name: KSO-Download-Turbo-Ultra-V1.0-PRO-Portable
         path: dist/*.exe
-
+    
     - name: Upload Installer
       uses: actions/upload-artifact@v4
       with:
